@@ -1,0 +1,52 @@
+name: publish
+
+# Publish to the npm registry when a GitHub Release is published, or on manual run.
+# The published version is whatever is in package.json — bump it and commit before
+# creating the release. This package ships raw TypeScript (Pi loads src/ directly),
+# so there is no build step; `files` in package.json controls what gets packed.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Required for npm provenance (signed build attestations). If you drop
+      # --provenance below, you can drop this permission too.
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck, lint & format check
+        run: npm run check
+
+      - name: Run tests
+        run: npm test
+
+      - name: Show version to be published
+        run: jq -r '"Publishing version " + .version' package.json
+
+      - name: Publish to npm
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
