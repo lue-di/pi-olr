@@ -1,0 +1,35 @@
+name: ci
+
+# Quality gate on every push to main and on pull requests: typecheck, lint,
+# format check, and the pure model-mapping test. Publishing is handled by publish.yml.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Typecheck, lint & test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck, lint & format check
+        run: npm run check
+
+      - name: Run tests
+        run: npm test
